@@ -2,46 +2,66 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>抽獎紀錄寫入 Google Sheet</title>
+  <title>抽獎活動</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 50px; }
+    #result { margin-top: 30px; font-size: 24px; }
+    button { font-size: 20px; padding: 10px 30px; }
+  </style>
 </head>
 <body>
-  <h2>抽獎登記</h2>
-  暱稱：<input type="text" id="nickname"><br>
-  獎項：
-  <select id="prize">
-    <option value="一等獎">🎉 一等獎</option>
-    <option value="二等獎">🎁 二等獎</option>
-    <option value="三等獎">🥳 三等獎</option>
-  </select><br><br>
-  <button onclick="submitLottery()">送出</button>
+  <h1>🎉 抽獎活動 🎁</h1>
+  <button onclick="drawPrize()" id="drawBtn">點我抽獎</button>
+  <div id="result"></div>
 
   <script>
-    function submitLottery() {
-      const nickname = document.getElementById("nickname").value.trim();
-      const prize = document.getElementById("prize").value;
-      if (!nickname) {
-        alert("請輸入暱稱！");
+    const MAX_WAIT_TIME = 5 * 24 * 60 * 60 * 1000; // 5 天
+    const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe_PF-8kiwrslHOTL0tYH-Vphe4b4KMGFsUiYPmTY2S1h1flA/formResponse"; // ✅ 改成你自己的
+    const PRIZE_ENTRY_ID = "entry.501685564"; // ✅ 改成你表單中「獎項」欄位的 entry ID
+
+    function drawPrize() {
+      const lastDrawTime = localStorage.getItem("lastDrawTime");
+      const currentTime = new Date().getTime();
+
+      if (lastDrawTime && currentTime - lastDrawTime < MAX_WAIT_TIME) {
+        const remainingDays = Math.ceil((MAX_WAIT_TIME - (currentTime - lastDrawTime)) / (1000 * 60 * 60 * 24));
+        document.getElementById("result").innerHTML = `您已參加過抽獎！`;
         return;
       }
 
-      fetch("https://script.google.com/macros/s/AKfycbx4jYIV_U-sgfUE17idG95NroXAEvCKGv_RPDL-hzFhQTk_px4tIslGkOAf3tMKHyZu/exec", {
+      const random = Math.random();
+      console.log("抽獎亂數值：", random); // 用來觀察
+
+      let prize = "謝謝參與";
+      if (random < 0.01) {
+        prize = "一等獎";
+      } else if (random < 0.04) {
+        prize = "二等獎";
+      } else if (random < 0.09) {
+        prize = "三等獎";
+      }
+
+      let message = "";
+      if (prize === "謝謝參與") {
+        message = "很可惜，您未中獎！";
+      } else {
+        message = `🎊 恭喜您抽中 <strong>${prize}</strong>！請截圖並留言領獎！`;
+      }
+
+      document.getElementById("result").innerHTML = message;
+      document.getElementById("drawBtn").disabled = true;
+      localStorage.setItem("lastDrawTime", currentTime);
+
+      // 傳送表單資料
+      const formData = new FormData();
+      formData.append(PRIZE_ENTRY_ID, prize);
+
+      fetch(FORM_URL, {
         method: "POST",
-        body: JSON.stringify({ nickname, prize }),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      })
-      .then(res => res.text())
-      .then(txt => {
-        alert("抽獎已登記成功！");
-        document.getElementById("nickname").value = "";
-      })
-      .catch(err => {
-        console.error("發生錯誤", err);
-        alert("寫入失敗，請稍後再試！");
+        mode: "no-cors",
+        body: formData
       });
     }
   </script>
 </body>
 </html>
-
