@@ -312,7 +312,7 @@
 
     <!-- JS 邏輯腳本 -->
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHCdH8zRsMLgIDLXYlA1a_eOXwhDPh1RuArvzCNS_Lry-C9kMNXRlKTOo59yTGfu8x8A/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykM_kg3cXFJlBp9fDtNs4BCg_BKWlFvazExUA7luKDuPNLAYd8-as6QN3acV-s6Vw4/exec";
 
         const EVENT_CONFIG = {
             endDate: new Date('2026-11-14T23:59:59+08:00').getTime(),
@@ -368,7 +368,8 @@
             stock: EVENT_CONFIG.totalStock,
             records: [],
             testMode: JSON.parse(localStorage.getItem('lottery_test_mode')) || false,
-            winRate: 1.0
+            winRate: 1.0,
+            isDrawing: false
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -396,6 +397,8 @@
         }
 
         function checkEventTimeStatus() {
+            if (state.isDrawing) return;
+
             const now = new Date().getTime();
             const statusDot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
@@ -456,6 +459,10 @@
 
         async function handleDraw(e) {
             e.preventDefault();
+
+            if (state.isDrawing) return;
+            state.isDrawing = true;
+
             playSound('click');
 
             let rawThreads = document.getElementById('threadsInput').value.trim();
@@ -464,6 +471,7 @@
 
             if (!rawThreads || !name || !phone || phone.length !== 3) {
                 alert('請完整正確填寫所有欄位！');
+                state.isDrawing = false;
                 return;
             }
 
@@ -475,16 +483,13 @@
 
             await fetchCloudRecords();
 
-            // 1. 檢查是否超過 500 人
             if (state.records.length >= EVENT_CONFIG.maxParticipants) {
                 alert('抱歉，名額已達 500 人上限，活動結束囉！');
+                state.isDrawing = false;
                 checkEventTimeStatus();
                 return;
             }
 
-            // 2. 重複驗證邏輯：
-            // - Threads 帳號獨立重複
-            // - 或是「真實姓名 AND 手機號碼」兩者同時一模一樣
             const isThreadsUsed = state.records.some(r => String(r.threads).toLowerCase() === threads.toLowerCase());
             const isNameAndPhoneUsed = state.records.some(r => 
                 String(r.name).trim() === name && String(r.phone).trim() === phone
@@ -492,23 +497,26 @@
 
             if (isThreadsUsed) {
                 alert(`Threads 帳號 (${threads}) 已參與過抽獎！每人限抽一次。`);
+                state.isDrawing = false;
                 checkEventTimeStatus();
                 return;
             }
 
             if (isNameAndPhoneUsed) {
                 alert(`姓名 (${name}) 與手機號碼後 3 碼 (${phone}) 已存在抽獎紀錄！每人限抽一次。`);
+                state.isDrawing = false;
                 checkEventTimeStatus();
                 return;
             }
 
             if (state.stock <= 0) {
                 alert('BTS 刻字戒指已全數被抽完囉！感謝您的參與。');
+                state.isDrawing = false;
                 checkEventTimeStatus();
                 return;
             }
 
-            // 開始滾動動畫
+            // 滾動動畫改為約 1 秒（滾動 10 次）
             document.getElementById('btnText').innerText = '正在演算結果...';
             const screen = document.getElementById('screenContent');
             let rollCount = 0;
@@ -521,7 +529,7 @@
                     <div class="text-[11px] text-purple-200/80 mt-1">正在演算幸運結果...</div>
                 `;
                 rollCount++;
-                if (rollCount > 25) {
+                if (rollCount > 10) {
                     clearInterval(rollInterval);
                     executeDrawResult(threads, name, phone);
                 }
@@ -541,7 +549,11 @@
                 time: new Date().toLocaleString('zh-TW')
             };
 
-            // 寫入 Google 試算表
+            state.records.push(record);
+            if (isWin) {
+                state.stock = Math.max(0, state.stock - 1);
+            }
+
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
@@ -552,12 +564,6 @@
             } catch (err) {
                 console.error("同步至雲端失敗：", err);
             }
-
-            if (isWin) {
-                state.stock = Math.max(0, state.stock - 1);
-            }
-
-            state.records.push(record);
 
             const screen = document.getElementById('screenContent');
             if (isWin) {
@@ -580,6 +586,7 @@
             }
 
             updateUI();
+            state.isDrawing = false;
             checkEventTimeStatus();
         }
 
