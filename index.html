@@ -172,10 +172,14 @@
                 </div>
 
                 <div class="mt-2.5 pt-2 border-t border-purple-300/20 flex items-center justify-between">
-                    <span class="text-xs text-purple-200/90 font-medium">剩餘庫存</span>
+                    <span class="text-xs text-purple-200/90 font-medium">已參與人數 / 庫存</span>
                     <div class="flex items-baseline gap-1">
-                        <span id="stockDisplay" class="text-2xl font-black text-purple-200 drop-shadow">5</span>
-                        <span class="text-xs text-purple-300/80 font-bold">/ 5 個</span>
+                        <span id="participantCount" class="text-xl font-black text-purple-200 drop-shadow">0</span>
+                        <span class="text-xs text-purple-300/80 font-bold">/ 500 人</span>
+                        <span class="text-xs text-purple-300/50 mx-1">|</span>
+                        <span class="text-xs text-purple-200/90 font-medium">剩</span>
+                        <span id="stockDisplay" class="text-xl font-black text-purple-200 drop-shadow">5</span>
+                        <span class="text-xs text-purple-300/80 font-bold">個</span>
                     </div>
                 </div>
             </div>
@@ -219,7 +223,7 @@
 
                 <div class="bg-purple-950/30 border border-purple-300/20 rounded-xl p-2 text-[11px] text-purple-100/90 leading-relaxed flex items-start gap-1.5 backdrop-blur-sm">
                     <i class="fa-solid fa-shield-halved text-purple-300 mt-0.5 flex-shrink-0"></i>
-                    <span>每個身分限抽一次，領獎時需私訊告知。</span>
+                    <span>限前 500 名參與，每人限抽一次！</span>
                 </div>
 
                 <button type="submit" id="drawBtn" disabled
@@ -262,7 +266,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <div class="text-sm font-medium text-white">測試模式（忽略 11/14 時間限制）</div>
-                            <div class="text-xs text-purple-200/70">開啟後即可在活動時間前測試抽獎流程</div>
+                            <div class="text-xs text-purple-200/70">開啟後即可在活動時間前測試流程</div>
                         </div>
                         <input type="checkbox" id="testModeToggle" onchange="toggleTestMode(this.checked)" class="w-5 h-5 accent-purple-500 cursor-pointer">
                     </div>
@@ -282,8 +286,8 @@
                 <div class="space-y-2">
                     <label class="block text-xs font-medium text-purple-200">設定預設中獎機率 (%)</label>
                     <div class="flex items-center gap-3">
-                        <input type="range" id="winRateRange" min="0.1" max="100" value="0.5" step="0.1" oninput="document.getElementById('rateVal').innerText = this.value + '%'" class="flex-1 accent-purple-500">
-                        <span id="rateVal" class="text-sm font-bold text-purple-200 w-12 text-right">1%</span>
+                        <input type="range" id="winRateRange" min="0.1" max="100" value="1.0" step="0.1" oninput="document.getElementById('rateVal').innerText = this.value + '%'" class="flex-1 accent-purple-500">
+                        <span id="rateVal" class="text-sm font-bold text-purple-200 w-12 text-right">1.0%</span>
                     </div>
                 </div>
 
@@ -308,12 +312,12 @@
 
     <!-- JS 邏輯腳本 -->
     <script>
-        // ⚠️【請填入步驟一取得的 Google Apps Script 網頁應用程式 URL】⚠️
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQEVJLp5Nd21LvYxUZCSguP5AQ9hOHjTseUnD8tc31LbgHFCYvF3kxQfehGb9EHSBOpQ/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHCdH8zRsMLgIDLXYlA1a_eOXwhDPh1RuArvzCNS_Lry-C9kMNXRlKTOo59yTGfu8x8A/exec";
 
         const EVENT_CONFIG = {
             endDate: new Date('2026-11-14T23:59:59+08:00').getTime(),
-            totalStock: 5
+            totalStock: 5,
+            maxParticipants: 500
         };
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -364,7 +368,7 @@
             stock: EVENT_CONFIG.totalStock,
             records: [],
             testMode: JSON.parse(localStorage.getItem('lottery_test_mode')) || false,
-            winRate: 0.5
+            winRate: 1.0
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -376,10 +380,7 @@
 
         // 讀取雲端試算表紀錄
         async function fetchCloudRecords() {
-            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_SCRIPT_URL_HERE")) {
-                console.warn("請先設定 GOOGLE_SCRIPT_URL 網址！");
-                return;
-            }
+            if (!GOOGLE_SCRIPT_URL) return;
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const data = await response.json();
@@ -402,11 +403,19 @@
             const drawBtn = document.getElementById('drawBtn');
             const btnText = document.getElementById('btnText');
 
+            const isFull = state.records.length >= EVENT_CONFIG.maxParticipants;
+
             if (state.testMode) {
                 statusDot.className = "w-2.5 h-2.5 rounded-full bg-purple-300 animate-pulse";
                 statusText.innerText = "測試模式中（忽略時間限制）";
                 countdownTimer.innerText = "TEST MODE";
-                if (state.stock > 0) {
+                if (isFull) {
+                    drawBtn.disabled = true;
+                    btnText.innerText = "已達 500 人上限，活動結束";
+                } else if (state.stock <= 0) {
+                    drawBtn.disabled = true;
+                    btnText.innerText = "戒指已全數被抽完";
+                } else {
                     drawBtn.disabled = false;
                     btnText.innerText = "確認資料並抽獎";
                 }
@@ -418,12 +427,15 @@
                 statusText.innerText = "距離活動結束";
                 countdownTimer.innerText = formatCountdown(EVENT_CONFIG.endDate - now);
                 
-                if (state.stock > 0) {
-                    drawBtn.disabled = false;
-                    btnText.innerText = "確認資料並抽獎";
-                } else {
+                if (isFull) {
+                    drawBtn.disabled = true;
+                    btnText.innerText = "已達 500 人上限，活動結束";
+                } else if (state.stock <= 0) {
                     drawBtn.disabled = true;
                     btnText.innerText = "獎品已全數抽完";
+                } else {
+                    drawBtn.disabled = false;
+                    btnText.innerText = "確認資料並抽獎";
                 }
             } else {
                 statusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
@@ -457,12 +469,18 @@
 
             const threads = rawThreads.startsWith('@') ? rawThreads : '@' + rawThreads;
 
-            // 抽獎前先向雲端確認最新紀錄，防止重複抽獎
             const drawBtn = document.getElementById('drawBtn');
             drawBtn.disabled = true;
             document.getElementById('btnText').innerText = '正在核對紀錄...';
 
             await fetchCloudRecords();
+
+            // 檢查是否超過 500 人
+            if (state.records.length >= EVENT_CONFIG.maxParticipants) {
+                alert('抱歉，名額已達 500 人上限，活動結束囉！');
+                checkEventTimeStatus();
+                return;
+            }
 
             const isThreadsUsed = state.records.some(r => String(r.threads).toLowerCase() === threads.toLowerCase());
             const isPhoneUsed = state.records.some(r => String(r.phone) === String(phone));
@@ -479,7 +497,7 @@
                 return;
             }
 
-            // 開始動畫
+            // 開始滾動動畫
             document.getElementById('btnText').innerText = '正在演算結果...';
             const screen = document.getElementById('screenContent');
             let rollCount = 0;
@@ -500,7 +518,7 @@
         }
 
         async function executeDrawResult(threads, name, phone) {
-            const winRate = parseFloat(document.getElementById('winRateRange').value) || 0.5;
+            const winRate = parseFloat(document.getElementById('winRateRange').value) || 1.0;
             const randomVal = Math.random() * 100;
             const isWin = randomVal < winRate && state.stock > 0;
 
@@ -555,12 +573,14 @@
         }
 
         function updateUI() {
+            const count = state.records.length;
+            document.getElementById('participantCount').innerText = count;
             document.getElementById('stockDisplay').innerText = state.stock;
             document.getElementById('adminStock').innerText = state.stock;
-            document.getElementById('adminTotalParticipants').innerText = state.records.length;
+            document.getElementById('adminTotalParticipants').innerText = count;
 
             const listContainer = document.getElementById('participantList');
-            if (state.records.length === 0) {
+            if (count === 0) {
                 listContainer.innerHTML = `<div class="text-purple-200/50 text-center py-2">尚無抽獎紀錄</div>`;
             } else {
                 listContainer.innerHTML = state.records.map(r => {
@@ -572,7 +592,7 @@
                                 <span class="text-purple-200/50">(${r.name} / ${r.phone})</span>
                             </div>
                             <div>
-                                ${isWinText ? '<span class="text-purple-200 font-bold">已中獎</span>' : '<span class="text-purple-200/40">未中</span>'}
+                                ${isWinText ? '<span class="text-amber-300 font-bold">🎉 已中獎</span>' : '<span class="text-purple-200/40">未中</span>'}
                             </div>
                         </div>
                     `;
