@@ -312,7 +312,7 @@
 
     <!-- JS 邏輯腳本 -->
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8DJVG1JR61mSjGqItjbeQO1iE5yhbT3fT7_oeruVRyz1dPHNUU-XRghfJvud7ZMirIg/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHCdH8zRsMLgIDLXYlA1a_eOXwhDPh1RuArvzCNS_Lry-C9kMNXRlKTOo59yTGfu8x8A/exec";
 
         const EVENT_CONFIG = {
             endDate: new Date('2026-11-14T23:59:59+08:00').getTime(),
@@ -475,18 +475,29 @@
 
             await fetchCloudRecords();
 
-            // 檢查是否超過 500 人
+            // 1. 檢查是否超過 500 人
             if (state.records.length >= EVENT_CONFIG.maxParticipants) {
                 alert('抱歉，名額已達 500 人上限，活動結束囉！');
                 checkEventTimeStatus();
                 return;
             }
 
+            // 2. 重複驗證邏輯：
+            // - Threads 帳號獨立重複
+            // - 或是「真實姓名 AND 手機號碼」兩者同時一模一樣
             const isThreadsUsed = state.records.some(r => String(r.threads).toLowerCase() === threads.toLowerCase());
-            const isPhoneUsed = state.records.some(r => String(r.phone) === String(phone));
+            const isNameAndPhoneUsed = state.records.some(r => 
+                String(r.name).trim() === name && String(r.phone).trim() === phone
+            );
 
-            if (isThreadsUsed || isPhoneUsed) {
-                alert(`帳號 (${threads}) 或手機號碼已參與過抽獎！每人限抽一次。`);
+            if (isThreadsUsed) {
+                alert(`Threads 帳號 (${threads}) 已參與過抽獎！每人限抽一次。`);
+                checkEventTimeStatus();
+                return;
+            }
+
+            if (isNameAndPhoneUsed) {
+                alert(`姓名 (${name}) 與手機號碼後 3 碼 (${phone}) 已存在抽獎紀錄！每人限抽一次。`);
                 checkEventTimeStatus();
                 return;
             }
