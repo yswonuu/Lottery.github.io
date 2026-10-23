@@ -312,7 +312,7 @@
 
     <!-- JS 邏輯腳本 -->
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykM_kg3cXFJlBp9fDtNs4BCg_BKWlFvazExUA7luKDuPNLAYd8-as6QN3acV-s6Vw4/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyt4diKD01LT-97MUWT-ldJuXODzkSqOdPsmCxH2Kje3CH34MYiayKIt4rtWeLgr7VKiQ/exec";
 
         const EVENT_CONFIG = {
             endDate: new Date('2026-11-14T23:59:59+08:00').getTime(),
@@ -490,7 +490,8 @@
                 return;
             }
 
-            const isThreadsUsed = state.records.some(r => String(r.threads).toLowerCase() === threads.toLowerCase());
+            // 精確比對：只有 Threads 帳號完全一模一樣，或 (姓名 + 電話) 完全一模一樣才判定重複
+            const isThreadsUsed = state.records.some(r => String(r.threads).trim() === threads.trim());
             const isNameAndPhoneUsed = state.records.some(r => 
                 String(r.name).trim() === name && String(r.phone).trim() === phone
             );
@@ -516,7 +517,7 @@
                 return;
             }
 
-            // 滾動動畫改為約 1 秒（滾動 10 次）
+            // 滾動動畫 1 秒（滾動 10 次）
             document.getElementById('btnText').innerText = '正在演算結果...';
             const screen = document.getElementById('screenContent');
             let rollCount = 0;
