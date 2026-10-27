@@ -223,7 +223,7 @@
 
                 <div class="bg-purple-950/30 border border-purple-300/20 rounded-xl p-2 text-[11px] text-purple-100/90 leading-relaxed flex items-start gap-1.5 backdrop-blur-sm">
                     <i class="fa-solid fa-shield-halved text-purple-300 mt-0.5 flex-shrink-0"></i>
-                    <span>限前 500 名參與，每人限抽一次！</span>
+                    <span>限前 500 名參與，每台裝置與身分限抽一次！</span>
                 </div>
 
                 <button type="submit" id="drawBtn" disabled
@@ -291,6 +291,13 @@
                     </div>
                 </div>
 
+                <div class="bg-rose-950/30 p-3 rounded-xl border border-rose-300/30 flex justify-between items-center">
+                    <span class="text-xs text-rose-200">測試完成後解鎖本機實體防抽限制</span>
+                    <button onclick="clearDeviceLock()" class="text-xs bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg font-medium transition">
+                        解鎖本機防抽
+                    </button>
+                </div>
+
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-xs font-medium text-purple-200">參與者與中獎紀錄 (已同步雲端)</label>
@@ -312,7 +319,7 @@
 
     <!-- JS 邏輯腳本 -->
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyt4diKD01LT-97MUWT-ldJuXODzkSqOdPsmCxH2Kje3CH34MYiayKIt4rtWeLgr7VKiQ/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHCdH8zRsMLgIDLXYlA1a_eOXwhDPh1RuArvzCNS_Lry-C9kMNXRlKTOo59yTGfu8x8A/exec";
 
         const EVENT_CONFIG = {
             endDate: new Date('2026-11-14T23:59:59+08:00').getTime(),
@@ -369,7 +376,8 @@
             records: [],
             testMode: JSON.parse(localStorage.getItem('lottery_test_mode')) || false,
             winRate: 1.0,
-            isDrawing: false
+            isDrawing: false,
+            hasDrawnLocal: localStorage.getItem('bts_lottery_drawn') === 'true' // 實體鎖定標記
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -377,6 +385,11 @@
             checkEventTimeStatus();
             setInterval(checkEventTimeStatus, 1000);
             document.getElementById('testModeToggle').checked = state.testMode;
+
+            // 如果本機已抽過，開頁面直接套用物理鎖定
+            if (state.hasDrawnLocal) {
+                applyPhysicalLock();
+            }
         });
 
         // 讀取雲端試算表紀錄
@@ -399,12 +412,19 @@
         function checkEventTimeStatus() {
             if (state.isDrawing) return;
 
+            const drawBtn = document.getElementById('drawBtn');
+            const btnText = document.getElementById('btnText');
+
+            // 優先判斷實體鎖定
+            if (state.hasDrawnLocal) {
+                applyPhysicalLock();
+                return;
+            }
+
             const now = new Date().getTime();
             const statusDot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
             const countdownTimer = document.getElementById('countdownTimer');
-            const drawBtn = document.getElementById('drawBtn');
-            const btnText = document.getElementById('btnText');
 
             const isFull = state.records.length >= EVENT_CONFIG.maxParticipants;
 
@@ -449,6 +469,18 @@
             }
         }
 
+        // 物理鎖定 UI 處理
+        function applyPhysicalLock() {
+            const drawBtn = document.getElementById('drawBtn');
+            const btnText = document.getElementById('btnText');
+            drawBtn.disabled = true;
+            btnText.innerText = "您已參與過本活動 (限抽一次)";
+            
+            document.getElementById('threadsInput').disabled = true;
+            document.getElementById('nameInput').disabled = true;
+            document.getElementById('phoneInput').disabled = true;
+        }
+
         function formatCountdown(ms) {
             const totalSec = Math.floor(ms / 1000);
             const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
@@ -460,7 +492,7 @@
         async function handleDraw(e) {
             e.preventDefault();
 
-            if (state.isDrawing) return;
+            if (state.isDrawing || state.hasDrawnLocal) return;
             state.isDrawing = true;
 
             playSound('click');
@@ -490,7 +522,6 @@
                 return;
             }
 
-            // 精確比對：只有 Threads 帳號完全一模一樣，或 (姓名 + 電話) 完全一模一樣才判定重複
             const isThreadsUsed = state.records.some(r => String(r.threads).trim() === threads.trim());
             const isNameAndPhoneUsed = state.records.some(r => 
                 String(r.name).trim() === name && String(r.phone).trim() === phone
@@ -550,6 +581,10 @@
                 time: new Date().toLocaleString('zh-TW')
             };
 
+            // 🔐 關鍵物理鎖定：按下並算完結果的當下，立刻將本機裝置標記為已抽過
+            localStorage.setItem('bts_lottery_drawn', 'true');
+            state.hasDrawnLocal = true;
+
             state.records.push(record);
             if (isWin) {
                 state.stock = Math.max(0, state.stock - 1);
@@ -588,7 +623,7 @@
 
             updateUI();
             state.isDrawing = false;
-            checkEventTimeStatus();
+            applyPhysicalLock(); // 鎖定輸入介面
         }
 
         function updateUI() {
@@ -644,6 +679,17 @@
             state.testMode = enabled;
             localStorage.setItem('lottery_test_mode', JSON.stringify(enabled));
             checkEventTimeStatus();
+        }
+
+        // 後台管理者解鎖本機測試按鈕
+        function clearDeviceLock() {
+            localStorage.removeItem('bts_lottery_drawn');
+            state.hasDrawnLocal = false;
+            document.getElementById('threadsInput').disabled = false;
+            document.getElementById('nameInput').disabled = false;
+            document.getElementById('phoneInput').disabled = false;
+            checkEventTimeStatus();
+            alert('本機防抽鎖定已成功解鎖！');
         }
     </script>
 </body>
