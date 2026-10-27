@@ -41,10 +41,16 @@
                 linear-gradient(rgba(15, 5, 29, 0.55), rgba(15, 5, 29, 0.65)),
                 url('https://i.ibb.co/SXrSZMDK/bts3.jpg');
             background-size: cover;
-            background-position: center;
+            background-position: center center;
             background-repeat: no-repeat;
-            background-attachment: fixed;
-            min-height: 100vh;
+            
+            /* 📱 關鍵修正：解決手機網址列縮放導致未滿版問題 */
+            min-h-screen: 100vh;
+            min-height: 100dvh; /* 支援手機動態視埠高度 */
+            width: 100%;
+            
+            /* 改用 scroll 代替 fixed，防範 iOS Safari 渲染 Bug */
+            background-attachment: scroll;
             color: #ffffff;
         }
 
