@@ -44,12 +44,10 @@
             background-position: center center;
             background-repeat: no-repeat;
             
-            /* 📱 關鍵修正：解決手機網址列縮放導致未滿版問題 */
             min-h-screen: 100vh;
-            min-height: 100dvh; /* 支援手機動態視埠高度 */
+            min-height: 100dvh;
             width: 100%;
-            
-            /* 改用 scroll 代替 fixed，防範 iOS Safari 渲染 Bug */
+
             background-attachment: scroll;
             color: #ffffff;
         }
