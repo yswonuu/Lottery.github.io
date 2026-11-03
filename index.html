@@ -683,5 +683,32 @@
             alert('本機防抽鎖定已成功解鎖！');
         }
     </script>
+    
+    <script>
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (
+            e.keyCode === 123 || // F12
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
+            (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+            (e.metaKey && e.altKey && (e.keyCode === 73 || e.keyCode === 74)) // Mac Cmd+Option+I/J
+        ) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    setInterval(function() {
+        const startTime = performance.now();
+        debugger;
+        const endTime = performance.now();
+        if (endTime - startTime > 100) {
+            console.clear();
+        }
+    }, 1000);
+</script>
 </body>
 </html>
