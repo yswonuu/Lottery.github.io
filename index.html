@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BTS 刻字戒指限時抽獎</title>
-    <!-- Tailwind CSS CDN -->
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Canvas Confetti CDN -->
+
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Font Awesome Icons -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
+
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <script>
@@ -187,7 +187,7 @@
             <div id="displayScreen" class="py-2 mb-3 text-center min-h-[48px] flex items-center justify-center">
                 <div id="screenContent">
                     <p class="text-purple-100 text-xs sm:text-sm font-medium drop-shadow">
-                        請於下方填寫資料即可開始抽獎<br>務必確認資料填寫正確❗送出後無法更改無法再抽一次
+                        請於下方填寫資料即可開始抽獎<br>務必確認資料填寫正確❗送出後無法更改、無法再抽一次
                     </p>
                 </div>
             </div>
@@ -243,6 +243,7 @@
         </button>
     </footer>
 
+    <!-- 管理者控制台 Modal -->
     <div id="adminModal" class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center p-4 z-50">
         <div class="glass-panel-transparent max-w-lg w-full rounded-2xl p-6 border border-purple-300/40 max-h-[90vh] overflow-y-auto bg-slate-950/80">
             <div class="flex justify-between items-center mb-4 pb-2 border-b border-purple-300/20">
@@ -261,16 +262,6 @@
             </div>
 
             <div id="adminPanel" class="hidden space-y-5">
-                <div class="bg-purple-950/40 p-4 rounded-xl border border-purple-300/30">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm font-medium text-white">測試模式（忽略 11/14 時間限制）</div>
-                            <div class="text-xs text-purple-200/70">開啟後即可在活動時間前測試流程</div>
-                        </div>
-                        <input type="checkbox" id="testModeToggle" onchange="toggleTestMode(this.checked)" class="w-5 h-5 accent-purple-500 cursor-pointer">
-                    </div>
-                </div>
-
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-purple-950/40 p-3 rounded-xl border border-purple-300/30 text-center">
                         <div class="text-xs text-purple-200/70">剩餘戒指庫存</div>
@@ -285,13 +276,13 @@
                 <div class="space-y-2">
                     <label class="block text-xs font-medium text-purple-200">設定預設中獎機率 (%)</label>
                     <div class="flex items-center gap-3">
-                        <input type="range" id="winRateRange" min="0.1" max="100" value="1.0" step="0.1" oninput="document.getElementById('rateVal').innerText = this.value + '%'" class="flex-1 accent-purple-500">
+                        <input type="range" id="winRateRange" min="0.1" max="100" value="1.5" step="0.1" oninput="document.getElementById('rateVal').innerText = this.value + '%'" class="flex-1 accent-purple-500">
                         <span id="rateVal" class="text-sm font-bold text-purple-200 w-12 text-right">1.2%</span>
                     </div>
                 </div>
 
                 <div class="bg-rose-950/30 p-3 rounded-xl border border-rose-300/30 flex justify-between items-center">
-                    <span class="text-xs text-rose-200">測試完成後解鎖本機實體防抽限制</span>
+                    <span class="text-xs text-rose-200">解鎖本機實體防抽限制</span>
                     <button onclick="clearDeviceLock()" class="text-xs bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg font-medium transition">
                         解鎖本機防抽
                     </button>
@@ -320,7 +311,7 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHCdH8zRsMLgIDLXYlA1a_eOXwhDPh1RuArvzCNS_Lry-C9kMNXRlKTOo59yTGfu8x8A/exec";
 
         const EVENT_CONFIG = {
-            endDate: new Date('2026-11-11T23:59:59+08:00').getTime(),
+            endDate: new Date('2026-11-14T23:59:59+08:00').getTime(),
             totalStock: 5,
             maxParticipants: 500
         };
@@ -372,17 +363,15 @@
         let state = {
             stock: EVENT_CONFIG.totalStock,
             records: [],
-            testMode: JSON.parse(localStorage.getItem('lottery_test_mode')) || false,
-            winRate: 1.0,
+            winRate: 1.5,
             isDrawing: false,
-            hasDrawnLocal: localStorage.getItem('bts_lottery_drawn') === 'true' // 實體鎖定標記
+            hasDrawnLocal: localStorage.getItem('bts_lottery_drawn') === 'true'
         };
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchCloudRecords();
             checkEventTimeStatus();
             setInterval(checkEventTimeStatus, 1000);
-            document.getElementById('testModeToggle').checked = state.testMode;
 
             if (state.hasDrawnLocal) {
                 applyPhysicalLock();
@@ -423,23 +412,6 @@
 
             const isFull = state.records.length >= EVENT_CONFIG.maxParticipants;
 
-            if (state.testMode) {
-                statusDot.className = "w-2.5 h-2.5 rounded-full bg-purple-300 animate-pulse";
-                statusText.innerText = "測試模式中（忽略時間限制）";
-                countdownTimer.innerText = "TEST MODE";
-                if (isFull) {
-                    drawBtn.disabled = true;
-                    btnText.innerText = "已達 500 人上限，活動結束";
-                } else if (state.stock <= 0) {
-                    drawBtn.disabled = true;
-                    btnText.innerText = "戒指已全數被抽完";
-                } else {
-                    drawBtn.disabled = false;
-                    btnText.innerText = "確認資料並抽獎";
-                }
-                return;
-            }
-
             if (now <= EVENT_CONFIG.endDate) {
                 statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping";
                 statusText.innerText = "距離活動結束";
@@ -460,7 +432,7 @@
                 statusText.innerText = "活動已結束";
                 countdownTimer.innerText = "00:00:00";
                 drawBtn.disabled = true;
-                btnText.innerText = "活動已結束 (已逾期)";
+                btnText.innerText = "活動已結束";
             }
         }
 
@@ -562,7 +534,7 @@
         }
 
         async function executeDrawResult(threads, name, phone) {
-            const winRate = parseFloat(document.getElementById('winRateRange').value) || 1.0;
+            const winRate = parseFloat(document.getElementById('winRateRange').value) || 1.5;
             const randomVal = Math.random() * 100;
             const isWin = randomVal < winRate && state.stock > 0;
 
@@ -667,12 +639,6 @@
             }
         }
 
-        function toggleTestMode(enabled) {
-            state.testMode = enabled;
-            localStorage.setItem('lottery_test_mode', JSON.stringify(enabled));
-            checkEventTimeStatus();
-        }
-
         function clearDeviceLock() {
             localStorage.removeItem('bts_lottery_drawn');
             state.hasDrawnLocal = false;
@@ -691,10 +657,10 @@
 
     document.addEventListener('keydown', function(e) {
         if (
-            e.keyCode === 123 || // F12
-            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
-            (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
-            (e.metaKey && e.altKey && (e.keyCode === 73 || e.keyCode === 74)) // Mac Cmd+Option+I/J
+            e.keyCode === 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+            (e.ctrlKey && e.keyCode === 85) || 
+            (e.metaKey && e.altKey && (e.keyCode === 73 || e.keyCode === 74))
         ) {
             e.preventDefault();
             return false;
