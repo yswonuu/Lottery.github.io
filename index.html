@@ -637,7 +637,7 @@
             }
 
             async function executeDrawResult(threads, name, phone) {
-            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 5;
+            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 3.8;
             const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 2;
 
             // 計算距離上一次「戒指中獎」之後，已經累積多少人沒中
@@ -669,7 +669,7 @@
             const record = {
                 threads: threads,
                 name: name,
-                phone: `'${phone}`, // 加上單引號防止 Google Sheets 吃掉前導 0 (例如 012 變成 12)
+                phone: `'${phone}`, 
                 win: winStatusText,
                 time: new Date().toLocaleString('zh-TW')
             };
