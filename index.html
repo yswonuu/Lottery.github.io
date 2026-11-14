@@ -623,13 +623,35 @@
         }
 
         async function executeDrawResult(threads, name, phone) {
-            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 3.8;
+            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 5;
             const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 2;
 
-            const ringWinCount = EVENT_CONFIG.totalRingStock - state.ringStock;
-            const ringRate = ringWinCount === 0 
-                ? Math.min(8, baseRingRate + state.records.length * 1) 
-                : baseRingRate;
+            // 計算距離上一次「戒指中獎」之後，已經累積多少人沒中
+            let missesSinceLastRing = 0;
+            for (let i = state.records.length - 1; i >= 0; i--) {
+                const winStatus = state.records[i].win;
+                if (winStatus === "中獎(戒指)" || winStatus === "中獎" || winStatus === true) {
+                    break;
+                }
+                missesSinceLastRing++;
+            }
+
+            async function executeDrawResult(threads, name, phone) {
+            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 5;
+            const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 2;
+
+            // 計算距離上一次「戒指中獎」之後，已經累積多少人沒中
+            let missesSinceLastRing = 0;
+            for (let i = state.records.length - 1; i >= 0; i--) {
+                const winStatus = state.records[i].win;
+                if (winStatus === "中獎(戒指)" || winStatus === "中獎" || winStatus === true) {
+                    break;
+                }
+                missesSinceLastRing++;
+            }
+
+            // 每連續 1 人沒中戒指就自動 +1%（最高上限 50%）
+            const ringRate = Math.min(50, baseRingRate + missesSinceLastRing * 1);
 
             const randomVal = Math.random() * 100;
             let wonPrize = null;
