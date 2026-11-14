@@ -622,21 +622,7 @@
             }, 100);
         }
 
-        async function executeDrawResult(threads, name, phone) {
-            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 5;
-            const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 2;
-
-            // 計算距離上一次「戒指中獎」之後，已經累積多少人沒中
-            let missesSinceLastRing = 0;
-            for (let i = state.records.length - 1; i >= 0; i--) {
-                const winStatus = state.records[i].win;
-                if (winStatus === "中獎(戒指)" || winStatus === "中獎" || winStatus === true) {
-                    break;
-                }
-                missesSinceLastRing++;
-            }
-
-            async function executeDrawResult(threads, name, phone) {
+                async function executeDrawResult(threads, name, phone) {
             const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 3.8;
             const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 2;
 
