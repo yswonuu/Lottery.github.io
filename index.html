@@ -351,15 +351,12 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJIDXVGTOaUv9ZxvCG3wPHruclroVUs2VMqeFeYS_JZrqZryvbNlbtqy45TGRyvVUb7g/exec";
 
         const EVENT_CONFIG = {
-            endDate: new Date('2026-11-15T23:59:59+08:00').getTime(),
+            endDate: new Date('2026-11-16T23:59:59+08:00').getTime(),
             totalRingStock: 5,
             totalZoneStock: 1,
             maxParticipants: 300
         };
 
-        // ==========================================
-        // 資料標準化清理函式（防空白、大小寫、Google Sheets 吃掉前導 0）
-        // ==========================================
         function toHalfWidth(str) {
             return String(str || '').replace(/[\uff01-\uff5e]/g, ch => 
                 String.fromCharCode(ch.charCodeAt(0) - 0xfee0)
@@ -378,7 +375,6 @@
         function normalizePhone(raw) {
             const digits = toHalfWidth(raw).replace(/[^\d]/g, '');
             if (!digits) return '';
-            // 關鍵修正：若 Google Sheets 自動將 "012" 存成數字 12，補回 3 碼 "012"
             return digits.padStart(3, '0').slice(-3);
         }
 
@@ -447,7 +443,6 @@
         async function fetchCloudRecords() {
             if (!GOOGLE_SCRIPT_URL) return false;
             try {
-                // 加上時間戳避免瀏覽器快取舊名單
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?t=${Date.now()}`);
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -576,7 +571,6 @@
                 return;
             }
 
-            // 嚴格比對（全部轉標準化格式後比對）
             const isThreadsUsed = state.records.some(r => 
                 normalizeThreads(r.threads) === threads
             );
