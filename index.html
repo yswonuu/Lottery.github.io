@@ -629,8 +629,14 @@
         }
 
         async function executeDrawResult(threads, name, phone) {
-            const ringRate = parseFloat(document.getElementById('ringRateRange').value) || 1.5;
-            const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 1.5;
+            const baseRingRate = parseFloat(document.getElementById('ringRateRange').value) || 5;
+            const zoneRate = parseFloat(document.getElementById('zoneRateRange').value) || 1.8;
+
+            // 計算目前已經有多少人抽過但沒中戒指，每人額外增加 1% 保底機率（上限 50%）
+            const ringWinCount = EVENT_CONFIG.totalRingStock - state.ringStock;
+            const ringRate = ringWinCount === 0 
+                ? Math.min(50, baseRingRate + state.records.length * 1) 
+                : baseRingRate;
 
             const randomVal = Math.random() * 100;
             let wonPrize = null;
