@@ -476,7 +476,7 @@
                 
                 if (isFull) {
                     drawBtn.disabled = true;
-                    btnText.innerText = "已達 500 人上限，活動結束";
+                    btnText.innerText = "已達 300 人上限，活動結束";
                 } else if (isAllStockEmpty) {
                     drawBtn.disabled = true;
                     btnText.innerText = "所有獎品皆已抽完";
@@ -539,7 +539,7 @@
             await fetchCloudRecords();
 
             if (state.records.length >= EVENT_CONFIG.maxParticipants) {
-                alert('抱歉，名額已達 500 人上限，活動結束囉！');
+                alert('抱歉，名額已達 300 人上限，活動結束囉！');
                 state.isDrawing = false;
                 checkEventTimeStatus();
                 return;
